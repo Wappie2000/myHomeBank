@@ -6,5 +6,5 @@ Goal of the project is mainly practice and have fun for myself, and secondly off
 
 This is version 2 of the project, it is now more or less in a MVC structure, and grahics have improved and the main functionality is there.  
 
-Of you like to try to use it, just downlaod the zip file.
+If you like to try to use it, just downlaod the zip file.
 
