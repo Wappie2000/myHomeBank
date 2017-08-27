@@ -1,0 +1,20 @@
+C;F;Salaris
+C;V;Vakantiegeld
+C;F;Zorgtoeslag
+C;F;Huurtoeslag
+C;V;Voorlopige teruggaaf
+C;V;Eenmalige belastingteruggaaf
+C;V;Overige inkomsten
+D;F;Woning
+D;F;Energie & lokale lasten
+D;F;Verzekeringen
+D;F;Abonnementen & bellen
+D;F;Onderwijs
+D;F;Overige vaste lasten
+D;V;Vervoer
+D;V;Kleding & schoenen
+D;V;Inventaris, huis & tuin
+D;V;Niet-vergoede ziektekosten
+D;V;Vrijetijdsuitgaven
+D;V;Huishoudelijke uitgaven
+
