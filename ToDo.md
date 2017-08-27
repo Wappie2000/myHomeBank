@@ -1,11 +1,11 @@
 # Things to do:
-- Create/design input tab
-- Create/design output tab
+
 - decide on additional tabs
-- create the filter/rule dialogue box or layout.
+  -clickable graphs
 - add comments to code
 - Collect various bank exports
 - Enable import for all banks
 - testing
 - design
-- rewrite to JavaFX
+- crashmanagement (to prevent data loss)
+
