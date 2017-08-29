@@ -13,13 +13,19 @@ import view.BankModelObserver;
 
 public class BankModel implements BankModelInterface , Serializable{
 	private static final long serialVersionUID = 1L;
+	
+	ArrayList<String> accounts= new ArrayList<>();
+	
+	
 
 	ArrayList<String> rawInput;
-	
-	ArrayList<Transaction> transactions = new ArrayList<Transaction>();
 	ArrayList<Transaction> excludedTransactions = new ArrayList<Transaction>();
+	
+	
 	ArrayList<Category> categories = new ArrayList<Category>();
-
+	ArrayList<Transaction> transactions = new ArrayList<Transaction>();
+	
+	
 	@Override
 	public ArrayList<Transaction> getExcludedTransactions() {
 		return excludedTransactions;
@@ -53,31 +59,48 @@ public class BankModel implements BankModelInterface , Serializable{
 	void convertRawInputToTransaction(){
 		for(String s: rawInput){
 			String[] result = s.split(",");
+			String account = result[0];
 			int year = Integer.parseInt(result[2].substring(1, 5));
 			int month = Integer.parseInt(result[2].substring(5, 7));
 			int day = Integer.parseInt(result[2].substring(7, 9));
 			LocalDate date = LocalDate.of(year,month,day);
 			String debetOrCredit = result[3].replaceAll("\"","");
 			float amount = Float.parseFloat(result[4].replaceAll("\"",""));
+			String otherEndOfTransactionAccount = result[5].replaceAll("\"","");
+			String otherEndOfTransactionDiscription = result[6].replaceAll("\"","");
 			String description = result[10].replaceAll("\"","");
+			description = description.concat(result[11].replaceAll("\"",""));
+			description= description.concat(result[12].replaceAll("\"",""));
+			description = description.concat(result[13].replaceAll("\"",""));
 
-			Transaction transaction = new Transaction(date, amount, debetOrCredit, description);
+			Transaction transaction = new Transaction(account, date, amount, debetOrCredit, description, otherEndOfTransactionAccount, otherEndOfTransactionDiscription);
 			transactions.add(transaction);
 
 		}
-		Collections.sort(transactions);
+		
 		initialCategoryAssignment();
 	} 
 
 	void initialCategoryAssignment(){
-		Category categoryNA = new Category("not yet assigned", new ArrayList<String>());
-		categories.add(categoryNA);
+		
+		Category categoryC = new Category("C", "V","not yet assigned", new ArrayList<String>());
+		Category categoryD= new Category("D", "V","not yet assigned", new ArrayList<String>());
+		categories.add(categoryC);
+		categories.add(categoryD);
 		for(Transaction t: transactions){
-			t.category = categoryNA;
+			if(t.getDebetOrCredit().equals("C")){
+				t.setCategory(categoryC);
+				System.out.println(t.getCategory());
+			} else {
+				t.setCategory(categoryD);
+				System.out.println(t.getCategory());
+			}
+			
 			for(Category category : categories){
-				for(String s : category.descriptions){
-					if(t.description.contains(s)){
-						t.category = category;
+				for(String s : category.keyWords){
+					if(t.getDescription().contains(s)){
+						t.setCategory(category);
+						System.out.println(t.getCategory());
 					}
 				}
 			}
@@ -85,15 +108,18 @@ public class BankModel implements BankModelInterface , Serializable{
 	}
 
 	public void loadCategoryFile(File file){
+		/*The file must define categories in the following way, per line a new category is defined, 
+		 * the words in one line have the following meaning:
+		 * debitOrCredit; fixedOrVariable; name; keyword1; keyword2; keyword3; etc til end of line 
+		*/
+		
+		//The lines of the file are loaded and added (per line)to a arraylist called temp
 		ArrayList<String> temp = new ArrayList<String> ();
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(file)); 
-
 			String line = null;
-
 			while ((line = reader.readLine()) !=null) {              
 				temp.add(line);
-
 			}
 			reader.close();
 		} catch (Exception ex) {
@@ -104,10 +130,10 @@ public class BankModel implements BankModelInterface , Serializable{
 		for(String s: temp){
 			String[] lineSeperated = s.split(";");
 			ArrayList<String> keywords = new ArrayList<String>();
-			for(int i = 1; i < lineSeperated.length; i++){  // this is on purpose, only first word excluded, this is the name of the category
+			for(int i = 3; i < lineSeperated.length; i++){  //categories start at 3;
 				keywords.add(lineSeperated[i].trim());
 			}
-			categories.add(new Category(lineSeperated[0], keywords));
+			categories.add(new Category(lineSeperated[0], lineSeperated[1], lineSeperated[2], keywords));
 		}
 		System.out.println("loadCategoryFile, on bankmodel completed, first category: " + categories.get(0));
 	}
@@ -135,6 +161,19 @@ public class BankModel implements BankModelInterface , Serializable{
 		} catch(Exception e)
 		{e.printStackTrace();
 		}
+		
+	}
+
+	@Override
+	public void clearTransactions() {
+		transactions.clear(); 
+		
+		
+	}
+
+	@Override
+	public void clearCategories() {
+		categories.clear(); 
 		
 	}
 }

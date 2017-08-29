@@ -38,8 +38,8 @@ public interface BankModelInterface {
 	public ArrayList<Category> getCategories();
 	public ArrayList<Transaction> getTransactions();
 	ArrayList<Transaction> getExcludedTransactions();
-
-	
+	public void clearTransactions();
+	public void clearCategories();
 	
 	
 	
@@ -49,5 +49,7 @@ public interface BankModelInterface {
 		//Observer Methods
 		void registerObserver(BankModelObserver o);
 		void removeObserver(BankModelObserver o);
+		
+		
 		
 }

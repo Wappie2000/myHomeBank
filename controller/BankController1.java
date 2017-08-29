@@ -142,8 +142,8 @@ public class BankController1 implements BankControllerInterface {
 
 	}
 
-	
-	double categoryTotal(String category, String debcred, LocalDate date1, LocalDate date2){
+	@Override  // Data are INCLUDING the first date (day), EXLUDING the last date (day), so you can put 1-5-2016, 1-6-2016 and get one month including the first of the month 
+	public double categoryTotal(String category, String debcred, LocalDate date1, LocalDate date2){
 		double total = 0;
 		for(Transaction t: bankModel.getTransactions()){
 			if(date1.isEqual(t.getTransactionDate()) || date1.isBefore(t.getTransactionDate()) && date2.isAfter(t.getTransactionDate()))
@@ -245,30 +245,72 @@ public class BankController1 implements BankControllerInterface {
 			Transaction t = bankModel.getTransactions().get(size-i);
 			LocalDate d = bankModel.getTransactions().get(size-i).getTransactionDate();
 
-			if(date1.isEqual(d) || date1.isBefore(d) && date2.isAfter(d))
-				if(t.getAmount()> minAmount)
-					if(t.getDebetOrCredit().equals(debcred))
+			if(date1.isEqual(d) || date1.isBefore(d) && date2.isAfter(d)){
+				if(t.getAmount()> minAmount){
+					if(t.getDebetOrCredit().equals(debcred)){
 						if(t.getCategory().getName().equals(category)) { 
 							transactionsToBeCategorised.add(t);          
 						}
+					}
+				}
+			}
 		}
 		return transactionsToBeCategorised;
 	}
 
+	@Override
+	public float categoryTotal(String categoryName, String debCred){
+		float temp = 0;
+		for(Transaction t : bankModel.getTransactions()){
+			if(t.getCategory().getName().equals(categoryName)){
+				if(t.getDebetOrCredit().equals(debCred)){
+				temp += t.getAmount();
+				}
+			}
+		}
+		
+		return temp;
+	}
 
+	@Override
+	public float generalTotal(String debCred){
+		float temp = 0;
+		for(Transaction t : bankModel.getTransactions()){
+			if(t.getDebetOrCredit().equals(debCred)){
+				temp += t.getAmount();
+			}
+		}
+		return temp;
+	}
+	@Override  // Data are INCLUDING the first date (day), EXLUDING the last date (day), so you can put 1-5-2016, 1-6-2016 and get one month including the first of the month 
+	public double generalTotal(String debcred, LocalDate date1, LocalDate date2){
+		double total = 0;
+		for(Transaction t: bankModel.getTransactions()){
+			if(date1.isEqual(t.getTransactionDate()) || date1.isBefore(t.getTransactionDate()) && date2.isAfter(t.getTransactionDate()))
+				if(t.getDebetOrCredit().equals(debcred))
+							total += t.getAmount();
+					
+		}
+		return total;
+	}
+	
+	
 
 
 	@Override
 	public void catogeriseTransaction(Transaction t, String category, String keyword) {
 		boolean isCat = false;
-
 		for(Category c : bankModel.getCategories()){
-			String tempname = c.getName();
-
-			if(tempname.equalsIgnoreCase(category)){
+			if(c.getName().equalsIgnoreCase(category)){
 				isCat = true;
 				if(!keyword.equals("")){
-					c.getDescriptions().add(keyword);
+					
+					try {
+						c.getKeyWords().add(keyword);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					System.out.println("Excisting category " + c + " added to transaction, keyword :" +keyword +"added to the category" );
 				}
 				t.setCategory(c);
@@ -284,37 +326,206 @@ public class BankController1 implements BankControllerInterface {
 
 					System.out.println("New category " + newCat + " added to transaction. With keyword " + keyword);
 				}
-				enrichTransactions2();
-
+				checkTransactionsAgainstKeyWords();
+			}
+		}
+	}
+	@Override
+	public void catogeriseTransactionAccount(Transaction t, String category, String account) {
+		for(Category c : bankModel.getCategories()){
+			if(c.getName().equalsIgnoreCase(category)){
+				c.getCounterAccounts().add(account);
+				checkTransactionsAgainstCounterAccounts();
 			}
 		}
 	}
 	
 	
 
-	void enrichTransactions2(){
+	
+	
+	@Override
+	public void addRuleToCategory(String category, Rule rule) {
+		for(Category c : bankModel.getCategories()){
+			String tempname = c.getName();
+			if(tempname.equalsIgnoreCase(category)){
+				c.getRules().add(rule);
+			}
+		}
+		checkTransactionsAgianstRules();
+	}
+
+	
+
+	void checkTransactionsAgainstKeyWords(){
+		//Checks against keyword and set a category
 		for(Transaction t: bankModel.getTransactions()){
 			for(Category category : bankModel.getCategories()){
-				for(String s : category.getDescriptions()){
+				for(String s : category.getKeyWords()){
 					if(t.getDescription().contains(s)){
 						t.setCategory(category);
 					}
 				}
 			}
-
+		}
+	}
+	void checkTransactionsAgainstCounterAccounts(){
+		for(Transaction t: bankModel.getTransactions()){
+			for(Category category : bankModel.getCategories()){
+				for(String a : category.getCounterAccounts()){
+					if(t.getOtherEndOfTransactionName().equals(a)){
+						t.setCategory(category);
+					}
+				}
+			}
 		}
 	}
 
+	void checkTransactionsAgianstRules(){
+		// Checks against rules and sets a category
+		for(Transaction t: bankModel.getTransactions()){
+			for(Category category : bankModel.getCategories()){
+				try {
+					if(!category.getRules().isEmpty()){
+						for(Rule r : category.getRules()){
+							
+							Boolean keyword = false;
+							Boolean  minAmount = false;
+							Boolean  maxAmount = false;
+							Boolean  startDate = false;
+							Boolean  endDate = false;
+							Boolean  counterAccount = false;
+							Boolean  counterAcccountDiscription = false;
+							
+							
+							if(r.getKeyword()==null){
+								keyword = true;
+							} else if (r.getKeyword().contains(t.getDescription())) {
+								keyword = true;
+							}
+							if(r.getMinAmount() < t.getAmount()){
+								minAmount = true;
+							}
+							if((r.getMaxAmount()== 0)){
+								maxAmount = true;
+							}else if(r.getMaxAmount() > t.getAmount()){
+								maxAmount = true;
+							}
+							if(r.getStartDate()==null){
+								startDate = true;
+							} else if (r.getStartDate().isBefore(t.getTransactionDate())) {
+								startDate = true;
+							}
+							if(r.getEndDate()==null){
+								endDate = true;
+							} else if (r.getEndDate().isAfter(t.getTransactionDate())) {
+								endDate = true;
+							}
+							if(r.getCounterAccount()==null){
+								counterAccount = true;
+							} else if (r.getCounterAccount().equals(t.getOtherEndOfTransactionAccount())) {
+								counterAccount = true;
+							}
+							if(r.getCounterAcccountDiscription()==null){
+								 counterAcccountDiscription = true;
+							} else if (r.getCounterAcccountDiscription().equalsIgnoreCase(t.getOtherEndOfTransactionName())) {
+								 counterAcccountDiscription = true;
+							}
+							
+							System.out.println(keyword);
+							System.out.println(minAmount);
+							System.out.println(maxAmount);
+							System.out.println(startDate);
+							System.out.println(endDate);
+							System.out.println(counterAccount);
+							System.out.println(counterAcccountDiscription);
+							System.out.println(r.getCounterAcccountDiscription());
+							System.out.println(t.getOtherEndOfTransactionName());
+										
+							if(keyword&minAmount&maxAmount&startDate&endDate&counterAccount&counterAcccountDiscription){
+								t.setCategory(category);
+								System.out.println("transaction: " + t + "is categorized as "+ category );
+							}
+							
+						}
+						
+						
+					}
+				} catch (NullPointerException e) {
+					System.out.println("THis category has no rule: "+category);
+				}
 
-	@Override
+				
+			}
+		}
+					
+				/* 	Boolean keyword = false;
+						Boolean  minAmount = false;
+						Boolean  maxAmount = false;
+						Boolean  startDate = false;
+						Boolean  endDate = false;
+						Boolean  counterAccount = false;
+						Boolean  counterAcccountDiscription = false;
+						
+						
+						if(r.getKeyword()==null){
+							keyword = true;
+						} else if (r.getKeyword().contains(t.getDescription())) {
+							keyword = true;
+						}
+						if(r.getMinAmount() < t.getAmount()){
+							minAmount = true;
+						}
+						if((r.getMaxAmount()== 0)){
+							maxAmount = true;
+						}else if(r.getMaxAmount() > t.getAmount()){
+							maxAmount = true;
+						}
+						if(r.getStartDate()==null){
+							startDate = true;
+						} else if (r.getStartDate().isBefore(t.getTransactionDate())) {
+							startDate = true;
+						}
+						if(r.getEndDate()==null){
+							endDate = true;
+						} else if (r.getEndDate().isAfter(t.getTransactionDate())) {
+							endDate = true;
+						}
+						if(r.getCounterAccount()==null){
+							counterAccount = true;
+						} else if (r.getCounterAccount().equals(t.getOtherEndOfTransactionAccount())) {
+							counterAccount = true;
+						}
+						if(r.getCounterAcccountDiscription()==null){
+							counterAccount = true;
+						} else if (r.getCounterAcccountDiscription().equals(t.getOtherEndOfTransactionName())) {
+							counterAccount = true;
+						}
+									
+						if(keyword&minAmount&maxAmount&startDate&endDate&counterAccount&counterAcccountDiscription){
+							t.setCategory(category);
+						}
+					}
+				} 
+			}
+			
+		}
+		*/
+	}
+
+
+	@Override 
+	// This function is misplaced shoul be in model, of al the things that dont have to be in the doel should be in the controler
 	public void saveCategories(File file){
 		try{
 
 			FileWriter writer = new FileWriter(file);
 
 			for(Category c : bankModel.getCategories()){
-				ArrayList<String> tempDisc = c.getDescriptions();
+				ArrayList<String> tempDisc = c.getKeyWords();
 				System.out.println(c);
+				writer.write(c.getdebetOrCredit()+ "; ");
+				writer.write(c.getFixedOrVariable()+ "; ");
 				writer.write(c.getName()+ "; ");
 				if(!tempDisc.isEmpty()){
 					for(int i = 0; i < tempDisc.size()-1; i++){
@@ -330,6 +541,17 @@ public class BankController1 implements BankControllerInterface {
 			System.out.println("couldn't write the categoryList out");
 			ex.printStackTrace();
 		}
+	}
+
+
+
+
+	@Override
+	public void clearAll() {
+		System.out.println("Clear all");
+		bankModel.clearTransactions();
+		bankModel.clearCategories();
+		
 	}
 
 
